@@ -34,6 +34,15 @@ export abstract class ProcessadorValidacaoTemplate implements ValidadorProjeto {
     return ResultadoValidacao.sucesso(mensagens, avisos);
   }
 
+  public visitarProjeto(projeto: Projeto): boolean {
+    return projeto.orcamento > 0 && projeto.duracao > 0;
+  }
+
+  public visitarProfissional(profissional: Profissional): boolean {
+    return profissional.disponivel;
+  }
+
+
   protected validarDisponibilidade(equipe: Profissional[], erros: string[], mensagens: string[]): void {
     const indisponiveis = equipe.filter(p => !p.disponivel);
     if (indisponiveis.length > 0) {

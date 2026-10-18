@@ -9,6 +9,10 @@ import { Profissional } from "./models/Profissional";
 import { NivelExperiencia, SeveridadeRestricao, TipoProjeto } from "./models/Tipos";
 import { SistemaRecomendacao } from "./services/SistemaRecomendacao";
 import { VisitanteCalculoCustos } from "./patterns/atvi_patterns/visitor/VisitanteCalculoCustos";
+import { OrquestradorPadrao, OrquestradorEquipe } from "./services/OrquestradorEquipe";
+
+export { OrquestradorPadrao, OrquestradorEquipe };
+
 
 export function criarBaseCandidatos(): Profissional[] {
   return [
@@ -161,17 +165,17 @@ export function executarDemonstracaoCLI(): void {
   const projetoClonado = prototipoOriginal.clonar();
   projetoClonado.titulo = "Documentário: Raízes da Amazônia";
   projetoClonado.orcamento = 95000;
+  projetoClonado.entrevistados.push("Lideranças Indígenas Ribeirinhas");
 
   // Modificação profunda no clone: adição de papel e restrição
-  projetoClonado.adicionarPapel(
-    new PapelProjeto(
-      "papel-extra-drone",
-      "Piloto de Drone e Captação Aérea",
-      NivelExperiencia.PLENO,
-      ["Pilotagem de Drone", "Captação 4K"],
-      1
-    )
+  const novoPapel = new PapelProjeto(
+    "papel-extra-drone",
+    "Piloto de Drone e Captação Aérea",
+    NivelExperiencia.PLENO,
+    ["Pilotagem de Drone", "Captação 4K"],
+    1
   );
+  projetoClonado.adicionarPapel(novoPapel);
 
   projetoClonado.adicionarRestricao(
     new RestricaoProjeto(
@@ -183,16 +187,16 @@ export function executarDemonstracaoCLI(): void {
     )
   );
 
-  // Alteração no primeiro papel clonado para testar independência de objetos agregados
-  if (projetoClonado.papeis[0]) {
-    projetoClonado.papeis[0].adicionarHabilidade("Bioacústica");
-  }
+  // Demonstração dos métodos do Diagrama UML: aceitarRecomendacao, substituirMembro
+  const candidatoDemo = new Profissional("demo-01", "Piloto Drone Pro", "Piloto", NivelExperiencia.PLENO, ["Drone"], 90);
+  projetoClonado.aceitarRecomendacao(novoPapel, candidatoDemo);
 
   console.log(`[Clone]   Projeto Clonado:  "${projetoClonado.titulo}" | Papéis: ${projetoClonado.papeis.length}`);
   console.log(`[Verificação de Imutabilidade do Protótipo Original]`);
   console.log(` - Papéis no Original: ${prototipoOriginal.papeis.length} (Intacto: ${prototipoOriginal.papeis.length === 3 ? "SIM" : "NÃO"})`);
   console.log(` - Papéis no Clone:    ${projetoClonado.papeis.length} (Adicionado: ${projetoClonado.papeis.length === 4 ? "SIM" : "NÃO"})`);
-  console.log(` - Habilidade "Bioacústica" presente no Original: ${prototipoOriginal.papeis[0]?.temHabilidade("Bioacústica") ? "SIM (FALHA)" : "NÃO (SUCESSO - Deep Copy Confirmado!)"}`);
+  console.log(` - Entrevistados Original: ${prototipoOriginal.entrevistados.length} | Clone: ${projetoClonado.entrevistados.length} (Deep Copy Confirmado!)`);
+  console.log(` - Factory Method criarFabrica(): ${projetoClonado.criarFabrica().constructor.name}`);
   console.log("--------------------------------------------------------------------------------\n");
 
   // -------------------------------------------------------------------------------------------
@@ -212,7 +216,7 @@ export function executarDemonstracaoCLI(): void {
   // -------------------------------------------------------------------------------------------
   // 3. DEMONSTRAÇÃO DO SISTEMA DE RECOMENDAÇÃO & ABSTRACT FACTORY
   // -------------------------------------------------------------------------------------------
-  console.log(">> [ETAPA 3] EXECUÇÃO DO SISTEMA DE RECOMENDAÇÃO (ABSTRACT FACTORY & ORQUESTRADOR)");
+  console.log(">> [ETAPA 3] EXECUÇÃO DO SISTEMA DE RECOMENDAÇÃO (ABSTRACT FACTORY & TEMPLATE METHOD)");
   console.log("--------------------------------------------------------------------------------");
   const sistema = new SistemaRecomendacao();
   const candidatos = criarBaseCandidatos();
@@ -241,7 +245,7 @@ export function executarDemonstracaoCLI(): void {
 
     console.log(`[Status de Validação]: ${resultado.validacao.valido ? "APROVADO (OK)" : "REPROVADO"}`);
     console.log(`[Membros Selecionados]: ${resultado.equipe.map(p => `${p.nome} (${p.papelPrincipal})`).join(" | ")}`);
-    console.log("\n[Notificação Gerada pelo Notificador da Família]:");
+    console.log("\n[Notificação Gerada pelo Observador da Família]:");
     console.log(resultado.notificacao);
     console.log("--------------------------------------------------------------------------------");
   }

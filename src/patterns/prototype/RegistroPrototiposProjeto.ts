@@ -104,7 +104,10 @@ export class RegistroPrototiposProjeto {
       true,
       true,
       true,
-      15
+      15,
+      "História e Memória Social",
+      ["Especialistas Acadêmicos", "Testemunhas Oculares", "Historiadores"],
+      75
     );
 
     // 2. Template Padrão Animação
@@ -171,7 +174,10 @@ export class RegistroPrototiposProjeto {
       "4K",
       85.5,
       7200,
-      24
+      24,
+      "3D Stylized",
+      ["Maya", "Blender", "ZBrush", "Houdini"],
+      15
     );
 
     // 3. Template Padrão Publicitário
@@ -231,7 +237,9 @@ export class RegistroPrototiposProjeto {
       "Agência Criativa Global",
       "Marca Premium",
       true,
-      4.5
+      4.5,
+      ["TV Aberta", "YouTube", "Instagram", "TikTok"],
+      1
     );
 
     this.registrar("DOCUMENTARIO", templateDoc);

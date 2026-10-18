@@ -2,9 +2,12 @@ import { FabricaProjeto } from "../patterns/factory/FabricaProjeto";
 import { FabricaDocumentario } from "../patterns/factory/FabricaDocumentario";
 import { FabricaAnimacao } from "../patterns/factory/FabricaAnimacao";
 import { FabricaPublicitario } from "../patterns/factory/FabricaPublicitario";
-import { OrquestradorEquipe, ResultadoOrquestracao } from "./OrquestradorEquipe";
+import { OrquestradorPadrao } from "./OrquestradorEquipe";
+import { Equipe } from "../models/Equipe";
 import { TipoProjeto } from "../models/Tipos";
 import { Profissional } from "../models/Profissional";
+import { Projeto } from "../patterns/prototype/Projeto";
+import { RecomendacaoStrategy } from "../patterns/atvi_patterns/strategy/RecomendacaoStrategy";
 
 export class SistemaRecomendacao {
   private fabricas: Map<string, FabricaProjeto> = new Map();
@@ -27,15 +30,36 @@ export class SistemaRecomendacao {
     return fabrica;
   }
 
+  /**
+   * Processa a solicitação de recomendação:
+   * Identifica a FabricaProjeto adequada (diretamente ou via Factory Method do Projeto),
+   * instancia o OrquestradorPadrao com essa fábrica e executa o fluxo completo.
+   */
   public processarSolicitacao(
-    tipoProjeto: TipoProjeto | string,
-    titulo: string,
-    orcamento: number,
-    candidatos: Profissional[]
-  ): ResultadoOrquestracao {
-    const fabrica = this.obterFabrica(tipoProjeto);
-    const orquestrador = new OrquestradorEquipe(fabrica);
-    return orquestrador.orquestrar(titulo, orcamento, candidatos);
+    tipoOuProjeto: TipoProjeto | string | Projeto,
+    tituloOuEstrategia?: string | RecomendacaoStrategy,
+    orcamento?: number,
+    candidatos?: Profissional[]
+  ): Equipe {
+    let fabrica: FabricaProjeto;
+
+    if (tipoOuProjeto instanceof Projeto) {
+      const projeto = tipoOuProjeto;
+      // Obtém via Factory Method do próprio projeto ou fábrica agregada
+      fabrica = projeto.fabrica ?? projeto.criarFabrica();
+      const orquestrador = new OrquestradorPadrao(fabrica);
+      return orquestrador.orquestrar(
+        projeto,
+        tituloOuEstrategia as RecomendacaoStrategy,
+        candidatos
+      );
+    } else {
+      const tipo = String(tipoOuProjeto);
+      fabrica = this.obterFabrica(tipo);
+      const orquestrador = new OrquestradorPadrao(fabrica);
+      const titulo = typeof tituloOuEstrategia === "string" ? tituloOuEstrategia : "Novo Projeto Audiovisual";
+      return orquestrador.orquestrar(titulo, orcamento ?? 60000, candidatos ?? []);
+    }
   }
 
   public listarTiposRegistrados(): string[] {

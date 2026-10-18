@@ -30,3 +30,7 @@ export class PapelProjeto implements Prototipo<PapelProjeto> {
     return this.habilidadesExigidas.includes(habilidade);
   }
 }
+
+export type Papel = PapelProjeto;
+export const Papel = PapelProjeto;
+

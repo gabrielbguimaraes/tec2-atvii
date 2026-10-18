@@ -1,28 +1,54 @@
 import { Projeto } from "./Projeto";
 import { TipoProjeto } from "../../models/Tipos";
-import { PapelProjeto } from "../../models/PapelProjeto";
+import { Papel } from "../../models/PapelProjeto";
 import { RestricaoProjeto } from "../../models/RestricaoProjeto";
+import { Profissional } from "../../models/Profissional";
+import { FabricaDocumentario } from "../factory/FabricaDocumentario";
+import type { FabricaProjeto } from "../factory/FabricaProjeto";
 
 export class ProjetoDocumentario extends Projeto {
+  public tema: string;
+  public entrevistados: string[];
+
   constructor(
     id: string,
-    titulo: string,
-    orcamento: number,
-    papeis: PapelProjeto[] = [],
+    titulo: string = "Documentário",
+    orcamento: number = 60000,
+    papeis: Papel[] = [],
     restricoes: RestricaoProjeto[] = [],
     metricasEspecificas: Record<string, number | string> = {},
     public pesquisaHistoricaProfunda: boolean = true,
     public licenciamentoArquivosObrigatorio: boolean = true,
     public equipeCampoEnxuta: boolean = true,
-    public fontesVerificadas: number = 0
+    public fontesVerificadas: number = 0,
+    tema: string = "História e Memória Social",
+    entrevistados: string[] = ["Especialistas Acadêmicos", "Testemunhas Oculares"],
+    duracao: number = 75,
+    prazo?: Date,
+    equipe: Map<Papel, Profissional[]> = new Map(),
+    fabrica?: FabricaProjeto
   ) {
-    super(id, titulo, orcamento, papeis, restricoes, metricasEspecificas);
-    // Inicializa métricas específicas se não definidas
-    if (this.metricasEspecificas["pesquisaHistorica"] === undefined) {
-      this.metricasEspecificas["pesquisaHistorica"] = pesquisaHistoricaProfunda ? 1 : 0;
+    super(
+      id,
+      titulo,
+      orcamento,
+      papeis,
+      restricoes,
+      metricasEspecificas,
+      "DOCUMENTARIO",
+      duracao,
+      prazo,
+      equipe,
+      fabrica
+    );
+    this.tema = tema;
+    this.entrevistados = [...entrevistados];
+
+    if (this._metricasEspecificas["pesquisaHistorica"] === undefined) {
+      this._metricasEspecificas["pesquisaHistorica"] = pesquisaHistoricaProfunda ? 1 : 0;
     }
-    if (this.metricasEspecificas["fontesVerificadas"] === undefined) {
-      this.metricasEspecificas["fontesVerificadas"] = fontesVerificadas;
+    if (this._metricasEspecificas["fontesVerificadas"] === undefined) {
+      this._metricasEspecificas["fontesVerificadas"] = fontesVerificadas;
     }
   }
 
@@ -30,8 +56,21 @@ export class ProjetoDocumentario extends Projeto {
     return TipoProjeto.DOCUMENTARIO;
   }
 
+  /**
+   * Padrão Factory Method: instancia a fábrica concreta correspondente.
+   */
+  public criarFabrica(): FabricaProjeto {
+    return new FabricaDocumentario();
+  }
+
+  /**
+   * Padrão Prototype: Realiza cópia profunda real (deep copy) de todos os atributos,
+   * incluindo agregados, data de prazo e a lista de entrevistados.
+   */
   public clonar(): ProjetoDocumentario {
-    const { papeisClonados, restricoesClonadas, metricasClonadas } = this.clonarEstruturaBase();
+    const { papeisClonados, restricoesClonadas, metricasClonadas, prazoClonado, equipeClonada } =
+      this.clonarEstruturaBase();
+
     return new ProjetoDocumentario(
       `${this.id}_clone_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       this.titulo,
@@ -42,7 +81,13 @@ export class ProjetoDocumentario extends Projeto {
       this.pesquisaHistoricaProfunda,
       this.licenciamentoArquivosObrigatorio,
       this.equipeCampoEnxuta,
-      this.fontesVerificadas
+      this.fontesVerificadas,
+      this.tema,
+      [...this.entrevistados],
+      this.duracao,
+      prazoClonado,
+      equipeClonada,
+      this.fabrica
     );
   }
 }

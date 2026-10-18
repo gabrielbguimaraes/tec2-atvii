@@ -1,5 +1,6 @@
 import { VisitanteProjeto } from "./VisitanteProjeto";
 import { Projeto } from "../../prototype/Projeto";
+import { Profissional } from "../../../models/Profissional";
 
 export interface MetricasAuditoriaProjeto {
   totalPapeis: number;
@@ -22,7 +23,7 @@ export class VisitanteCalculoCustos implements VisitanteProjeto {
     tipoProjeto: ""
   };
 
-  public visitar(projeto: Projeto): void {
+  public visitarProjeto(projeto: Projeto): MetricasAuditoriaProjeto {
     const totalPapeis = projeto.papeis.length;
     const totalVagas = projeto.papeis.reduce((acc, p) => acc + p.quantidade, 0);
     const totalRestricoes = projeto.restricoes.length;
@@ -39,5 +40,15 @@ export class VisitanteCalculoCustos implements VisitanteProjeto {
       custoMedioPorPapel: Math.round(custoMedioPorPapel * 100) / 100,
       tipoProjeto: String(projeto.obterTipo())
     };
+
+    return this.relatorio;
+  }
+
+  public visitarProfissional(profissional: Profissional): boolean {
+    return profissional.disponivel;
+  }
+
+  public visitar(projeto: Projeto): void {
+    this.visitarProjeto(projeto);
   }
 }

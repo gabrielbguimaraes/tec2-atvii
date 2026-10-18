@@ -1,8 +1,30 @@
 import { ProcessadorValidacaoTemplate } from "../../atvi_patterns/template_method/ProcessadorValidacaoTemplate";
 import { Projeto } from "../../prototype/Projeto";
 import { Profissional } from "../../../models/Profissional";
+import { VisitanteProjeto } from "../../atvi_patterns/visitor/VisitanteProjeto";
+import { ValidadorProjeto } from "./ValidadorProjeto";
 
-export class ValidadorDocumentario extends ProcessadorValidacaoTemplate {
+export class ValidadorDocumentario extends ProcessadorValidacaoTemplate implements VisitanteProjeto, ValidadorProjeto {
+  public visitarProjeto(projeto: Projeto): boolean {
+    const orcamentoValido = projeto.orcamento > 0;
+    const duracaoValida = projeto.duracao > 0;
+    const restricoesValidas = projeto.restricoes.every(r => (r.obrigatoria ? r.tipo.length > 0 : true));
+    return orcamentoValido && duracaoValida && restricoesValidas;
+  }
+
+  public visitarProfissional(profissional: Profissional): boolean {
+    return (
+      profissional.disponivel &&
+      (profissional.temHabilidade("Pesquisa Histórica") ||
+        profissional.temHabilidade("Verificação Factual") ||
+        profissional.temHabilidade("Entrevistas") ||
+        profissional.temHabilidade("Captação Direta") ||
+        profissional.temHabilidade("Licenciamento de Imagem") ||
+        profissional.temTag("pesquisa") ||
+        profissional.temTag("documental"))
+    );
+  }
+
   protected validarRegrasEspecificas(
     projeto: Projeto,
     equipe: Profissional[],

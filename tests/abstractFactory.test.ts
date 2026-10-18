@@ -1,4 +1,4 @@
-import { OrquestradorEquipe } from "../src/services/OrquestradorEquipe";
+import { OrquestradorEquipe, OrquestradorPadrao } from "../src/services/OrquestradorEquipe";
 import { FabricaDocumentario } from "../src/patterns/factory/FabricaDocumentario";
 import { FabricaAnimacao } from "../src/patterns/factory/FabricaAnimacao";
 import { FabricaPublicitario } from "../src/patterns/factory/FabricaPublicitario";
@@ -8,6 +8,7 @@ import { ProjetoPublicitario } from "../src/patterns/prototype/ProjetoPublicitar
 import { criarBaseCandidatos } from "../src/index";
 import { Profissional } from "../src/models/Profissional";
 import { TipoProjeto } from "../src/models/Tipos";
+import { Equipe } from "../src/models/Equipe";
 
 describe("Teste 2: Abstract Factory & OrquestradorEquipe (Famílias Coesas)", () => {
   let candidatos: Profissional[];
@@ -16,103 +17,158 @@ describe("Teste 2: Abstract Factory & OrquestradorEquipe (Famílias Coesas)", ()
     candidatos = criarBaseCandidatos();
   });
 
-  it("deve orquestrar família de Documentário com produtos consistentes entre si", () => {
-    const fabrica = new FabricaDocumentario();
-    const orquestrador = new OrquestradorEquipe(fabrica);
+  describe("Contratos das Fábricas Concretas (Visitor, Strategy, Observer)", () => {
+    it("deve garantir que FabricaDocumentario retorna produtos segundo o diagrama UML oficial", () => {
+      const fabrica = new FabricaDocumentario();
+      const validador = fabrica.criarValidador();
+      const recomendador = fabrica.criarRecomendador();
+      const notificador = fabrica.criarNotificador();
 
-    const resultado = orquestrador.orquestrar(
-      "Documentário Histórico: Revolução Científica",
-      70000,
-      candidatos
-    );
+      expect(typeof validador.visitarProjeto).toBe("function");
+      expect(typeof validador.visitarProfissional).toBe("function");
+      expect(typeof recomendador.recomendar).toBe("function");
+      expect(typeof notificador.atualizar).toBe("function");
+    });
 
-    // Validação do Projeto
-    expect(resultado.projeto).toBeInstanceOf(ProjetoDocumentario);
-    expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.DOCUMENTARIO);
-    expect(resultado.projeto.titulo).toBe("Documentário Histórico: Revolução Científica");
+    it("deve garantir que FabricaAnimacao retorna produtos segundo o diagrama UML oficial", () => {
+      const fabrica = new FabricaAnimacao();
+      const validador = fabrica.criarValidador();
+      const recomendador = fabrica.criarRecomendador();
+      const notificador = fabrica.criarNotificador();
 
-    // Validação da Equipe Recomendada (prioriza pesquisa e acervo)
-    expect(resultado.equipe.length).toBeGreaterThan(0);
-    const possuiPesquisador = resultado.equipe.some(p =>
-      p.temHabilidade("Pesquisa Histórica") || p.temHabilidade("Verificação Factual")
-    );
-    expect(possuiPesquisador).toBe(true);
+      expect(typeof validador.visitarProjeto).toBe("function");
+      expect(typeof validador.visitarProfissional).toBe("function");
+      expect(typeof recomendador.recomendar).toBe("function");
+      expect(typeof notificador.atualizar).toBe("function");
+    });
 
-    // Validação do Validador de Documentário
-    expect(resultado.validacao.valido).toBe(true);
-    const temMensagemDoc = resultado.validacao.mensagens.some(m =>
-      m.includes("ValidadorDocumentario") || m.includes("acervo histórico") || m.includes("enxuta")
-    );
-    expect(temMensagemDoc).toBe(true);
+    it("deve garantir que FabricaPublicitario retorna produtos segundo o diagrama UML oficial", () => {
+      const fabrica = new FabricaPublicitario();
+      const validador = fabrica.criarValidador();
+      const recomendador = fabrica.criarRecomendador();
+      const notificador = fabrica.criarNotificador();
 
-    // Validação da Notificação (Diário de Campo)
-    expect(resultado.notificacao).toContain("DIÁRIO DE CAMPO & PRODUÇÃO DOCUMENTAL");
-    expect(resultado.notificacao).toContain("Fontes Históricas Verificadas");
+      expect(typeof validador.visitarProjeto).toBe("function");
+      expect(typeof validador.visitarProfissional).toBe("function");
+      expect(typeof recomendador.recomendar).toBe("function");
+      expect(typeof notificador.atualizar).toBe("function");
+    });
   });
 
-  it("deve orquestrar família de Animação com produtos consistentes entre si", () => {
-    const fabrica = new FabricaAnimacao();
-    const orquestrador = new OrquestradorEquipe(fabrica);
+  describe("OrquestradorPadrao & OrquestradorEquipe (Template Method)", () => {
+    it("deve orquestrar família de Documentário com produtos consistentes entre si", () => {
+      const fabrica = new FabricaDocumentario();
+      const orquestrador = new OrquestradorPadrao(fabrica);
+      expect(orquestrador).toBeInstanceOf(OrquestradorEquipe);
 
-    const resultado = orquestrador.orquestrar(
-      "Curta 3D: A Odisséia Cibernética",
-      160000,
-      candidatos
-    );
+      const resultado = orquestrador.orquestrar(
+        "Documentário Histórico: Revolução Científica",
+        70000,
+        candidatos
+      );
 
-    // Validação do Projeto
-    expect(resultado.projeto).toBeInstanceOf(ProjetoAnimacao);
-    expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.ANIMACAO);
+      // Validação do tipo de retorno (Equipe)
+      expect(resultado).toBeInstanceOf(Equipe);
+      expect(resultado.membros).toBeInstanceOf(Map);
 
-    // Validação da Equipe Recomendada (prioriza 3D, Rigging, Render)
-    expect(resultado.equipe.length).toBeGreaterThan(0);
-    const possuiArtista3D = resultado.equipe.some(p =>
-      p.temHabilidade("Modelagem 3D") || p.temHabilidade("Rigging") || p.temHabilidade("Animação 3D")
-    );
-    expect(possuiArtista3D).toBe(true);
+      // Validação do Projeto
+      expect(resultado.projeto).toBeInstanceOf(ProjetoDocumentario);
+      expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.DOCUMENTARIO);
+      expect(resultado.projeto.titulo).toBe("Documentário Histórico: Revolução Científica");
 
-    // Validação do Validador de Animação
-    expect(resultado.validacao.valido).toBe(true);
-    const temMensagemAnim = resultado.validacao.mensagens.some(m =>
-      m.includes("ValidadorAnimacao") || m.includes("pipeline DCC") || m.includes("render farm")
-    );
-    expect(temMensagemAnim).toBe(true);
+      // Validação da Equipe Recomendada (prioriza pesquisa e acervo)
+      expect(resultado.equipe.length).toBeGreaterThan(0);
+      const possuiPesquisador = resultado.equipe.some(p =>
+        p.temHabilidade("Pesquisa Histórica") || p.temHabilidade("Verificação Factual")
+      );
+      expect(possuiPesquisador).toBe(true);
 
-    // Validação da Notificação (Relatório Técnico)
-    expect(resultado.notificacao).toContain("RELATÓRIO TÉCNICO DE PIPELINE 3D & RENDER FARM");
-    expect(resultado.notificacao).toContain("Eficiência Render Farm");
-  });
+      // Validação do Validador de Documentário
+      expect(resultado.validacao.valido).toBe(true);
+      const temMensagemDoc = resultado.validacao.mensagens.some(m =>
+        m.includes("ValidadorDocumentario") || m.includes("acervo histórico") || m.includes("enxuta")
+      );
+      expect(temMensagemDoc).toBe(true);
 
-  it("deve orquestrar família de Publicitário com produtos consistentes entre si", () => {
-    const fabrica = new FabricaPublicitario();
-    const orquestrador = new OrquestradorEquipe(fabrica);
+      // Validação da Notificação (Diário de Campo)
+      expect(resultado.notificacao).toContain("DIÁRIO DE CAMPO & PRODUÇÃO DOCUMENTAL");
+      expect(resultado.notificacao).toContain("Fontes Históricas Verificadas");
+    });
 
-    const resultado = orquestrador.orquestrar(
-      "Spot TVC: Lançamento Automóvel Elétrico",
-      90000,
-      candidatos
-    );
+    it("deve orquestrar família de Animação com produtos consistentes entre si", () => {
+      const fabrica = new FabricaAnimacao();
+      const orquestrador = new OrquestradorPadrao(fabrica);
 
-    // Validação do Projeto
-    expect(resultado.projeto).toBeInstanceOf(ProjetoPublicitario);
-    expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.PUBLICITARIO);
+      const resultado = orquestrador.orquestrar(
+        "Curta 3D: A Odisséia Cibernética",
+        160000,
+        candidatos
+      );
 
-    // Validação da Equipe Recomendada (prioriza Direção de Arte e Agilidade)
-    expect(resultado.equipe.length).toBeGreaterThan(0);
-    const possuiCriativo = resultado.equipe.some(p =>
-      p.temHabilidade("Direção de Arte") || p.temHabilidade("Agilidade Comercial")
-    );
-    expect(possuiCriativo).toBe(true);
+      // Validação do Projeto
+      expect(resultado.projeto).toBeInstanceOf(ProjetoAnimacao);
+      expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.ANIMACAO);
 
-    // Validação do Validador de Publicidade
-    expect(resultado.validacao.valido).toBe(true);
-    const temMensagemPub = resultado.validacao.mensagens.some(m =>
-      m.includes("ValidadorPublicitario") || m.includes("SLA") || m.includes("brandbook")
-    );
-    expect(temMensagemPub).toBe(true);
+      // Validação da Equipe Recomendada (prioriza 3D, Rigging, Render)
+      expect(resultado.equipe.length).toBeGreaterThan(0);
+      const possuiArtista3D = resultado.equipe.some(p =>
+        p.temHabilidade("Modelagem 3D") || p.temHabilidade("Rigging") || p.temHabilidade("Animação 3D")
+      );
+      expect(possuiArtista3D).toBe(true);
 
-    // Validação da Notificação (Relatório Executivo para Agência)
-    expect(resultado.notificacao).toContain("RELATÓRIO EXECUTIVO DE CAMPANHA & AGÊNCIA PUBLICITÁRIA");
-    expect(resultado.notificacao).toContain("SLA Crítico de Entrega");
+      // Validação do Validador de Animação
+      expect(resultado.validacao.valido).toBe(true);
+      const temMensagemAnim = resultado.validacao.mensagens.some(m =>
+        m.includes("ValidadorAnimacao") || m.includes("pipeline DCC") || m.includes("render farm")
+      );
+      expect(temMensagemAnim).toBe(true);
+
+      // Validação da Notificação (Relatório Técnico)
+      expect(resultado.notificacao).toContain("RELATÓRIO TÉCNICO DE PIPELINE 3D & RENDER FARM");
+      expect(resultado.notificacao).toContain("Eficiência Render Farm");
+    });
+
+    it("deve orquestrar família de Publicitário com produtos consistentes entre si", () => {
+      const fabrica = new FabricaPublicitario();
+      const orquestrador = new OrquestradorPadrao(fabrica);
+
+      const resultado = orquestrador.orquestrar(
+        "Spot TVC: Lançamento Automóvel Elétrico",
+        90000,
+        candidatos
+      );
+
+      // Validação do Projeto
+      expect(resultado.projeto).toBeInstanceOf(ProjetoPublicitario);
+      expect(resultado.projeto.obterTipo()).toBe(TipoProjeto.PUBLICITARIO);
+
+      // Validação da Equipe Recomendada (prioriza Direção de Arte e Agilidade)
+      expect(resultado.equipe.length).toBeGreaterThan(0);
+      const possuiCriativo = resultado.equipe.some(p =>
+        p.temHabilidade("Direção de Arte") || p.temHabilidade("Agilidade Comercial")
+      );
+      expect(possuiCriativo).toBe(true);
+
+      // Validação do Validador de Publicidade
+      expect(resultado.validacao.valido).toBe(true);
+      const temMensagemPub = resultado.validacao.mensagens.some(m =>
+        m.includes("ValidadorPublicitario") || m.includes("SLA") || m.includes("brandbook")
+      );
+      expect(temMensagemPub).toBe(true);
+
+      // Validação da Notificação (Relatório Executivo para Agência)
+      expect(resultado.notificacao).toContain("RELATÓRIO EXECUTIVO DE CAMPANHA & AGÊNCIA PUBLICITÁRIA");
+      expect(resultado.notificacao).toContain("SLA Crítico de Entrega");
+    });
+
+    it("deve permitir orquestrar passando a instância do Projeto diretamente", () => {
+      const fabrica = new FabricaDocumentario();
+      const projeto = fabrica.criarProjeto("Doc Direto", 80000);
+      const orquestrador = new OrquestradorPadrao(fabrica);
+
+      const resultado = orquestrador.orquestrar(projeto, undefined, candidatos);
+      expect(resultado.projeto).toBe(projeto);
+      expect(resultado.membros.size).toBeGreaterThan(0);
+    });
   });
 });

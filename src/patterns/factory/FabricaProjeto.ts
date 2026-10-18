@@ -1,15 +1,15 @@
 import { Projeto } from "../prototype/Projeto";
-import { ValidadorProjeto } from "../products/validadores/ValidadorProjeto";
-import { RecomendadorProfissionais } from "../products/recomendadores/RecomendadorProfissionais";
-import { NotificadorEquipe } from "../products/notificadores/NotificadorEquipe";
+import { VisitanteProjeto } from "../atvi_patterns/visitor/VisitanteProjeto";
+import { RecomendacaoStrategy } from "../atvi_patterns/strategy/RecomendacaoStrategy";
+import { Observador } from "../atvi_patterns/observer/Observador";
 
 /**
- * Interface Abstract Factory: declara os Factory Methods para criação
- * de toda a família de produtos coesos de um tipo de projeto audiovisual.
+ * Interface Abstract Factory oficial da ATVII:
+ * Declara a família de criação consistente de produtos (Visitor, Strategy, Observer e Prototype).
  */
 export interface FabricaProjeto {
-  criarProjeto(titulo?: string, orcamento?: number): Projeto;
-  criarValidador(): ValidadorProjeto;
-  criarRecomendador(): RecomendadorProfissionais;
-  criarNotificador(): NotificadorEquipe;
+  criarProjeto(dados?: any, orcamento?: number): Projeto;
+  criarValidador(): VisitanteProjeto;
+  criarRecomendador(): RecomendacaoStrategy;
+  criarNotificador(): Observador;
 }

@@ -4,7 +4,11 @@ import { ProjetoPublicitario } from "../src/patterns/prototype/ProjetoPublicitar
 import { RegistroPrototiposProjeto } from "../src/patterns/prototype/RegistroPrototiposProjeto";
 import { PapelProjeto } from "../src/models/PapelProjeto";
 import { RestricaoProjeto } from "../src/models/RestricaoProjeto";
+import { Profissional } from "../src/models/Profissional";
 import { NivelExperiencia, SeveridadeRestricao } from "../src/models/Tipos";
+import { FabricaDocumentario } from "../src/patterns/factory/FabricaDocumentario";
+import { FabricaAnimacao } from "../src/patterns/factory/FabricaAnimacao";
+import { FabricaPublicitario } from "../src/patterns/factory/FabricaPublicitario";
 
 describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)", () => {
   let registro: RegistroPrototiposProjeto;
@@ -13,11 +17,13 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
     registro = new RegistroPrototiposProjeto();
   });
 
-  describe("ProjetoDocumentario - Clonagem Profunda", () => {
+  describe("ProjetoDocumentario - Clonagem Profunda & Factory Method", () => {
     it("deve clonar profundamente ProjetoDocumentario e manter o protótipo original intacto", () => {
       const original = registro.obter("DOCUMENTARIO") as ProjetoDocumentario;
       const qtdPapeisOriginal = original.papeis.length;
       const qtdRestricoesOriginal = original.restricoes.length;
+      const qtdEntrevistadosOriginal = original.entrevistados.length;
+      const anoPrazoOriginal = original.prazo.getFullYear();
 
       // Realiza o clone
       const clone = original.clonar();
@@ -26,8 +32,13 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
       expect(clone.papeis).not.toBe(original.papeis);
       expect(clone.restricoes).not.toBe(original.restricoes);
       expect(clone.metricasEspecificas).not.toBe(original.metricasEspecificas);
+      expect(clone.entrevistados).not.toBe(original.entrevistados);
+      expect(clone.prazo).not.toBe(original.prazo);
 
-      // Modifica listas no clone
+      // Modifica listas e agregados no clone
+      clone.entrevistados.push("Especialista em Antropologia");
+      clone.prazo.setFullYear(2035);
+
       clone.adicionarPapel(
         new PapelProjeto(
           "papel-novo-pesquisador",
@@ -65,6 +76,13 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
       expect(original.restricoes.length).toBe(qtdRestricoesOriginal);
       expect(clone.restricoes.length).toBe(qtdRestricoesOriginal + 1);
 
+      expect(original.entrevistados.length).toBe(qtdEntrevistadosOriginal);
+      expect(clone.entrevistados.length).toBe(qtdEntrevistadosOriginal + 1);
+      expect(original.entrevistados).not.toContain("Especialista em Antropologia");
+
+      expect(original.prazo.getFullYear()).toBe(anoPrazoOriginal);
+      expect(clone.prazo.getFullYear()).toBe(2035);
+
       const primeiroPapelOriginal = original.papeis[0];
       expect(primeiroPapelOriginal?.temHabilidade("Nova Habilidade Rara")).toBe(false);
       expect(primeiroPapelClone?.temHabilidade("Nova Habilidade Rara")).toBe(true);
@@ -72,19 +90,46 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
       expect(original.obterMetrica("fontesVerificadas")).toBe(15);
       expect(clone.obterMetrica("fontesVerificadas")).toBe(999);
     });
+
+    it("deve instanciar a FabricaDocumentario via Factory Method criarFabrica()", () => {
+      const original = registro.obter("DOCUMENTARIO") as ProjetoDocumentario;
+      const fabrica = original.criarFabrica();
+      expect(fabrica).toBeInstanceOf(FabricaDocumentario);
+    });
+
+    it("deve gerenciar membros de equipe com aceitarRecomendacao, substituirMembro e solicitarReavaliacao", () => {
+      const projeto = registro.clonar("DOCUMENTARIO") as ProjetoDocumentario;
+      const papel = projeto.papeis[0];
+      expect(papel).toBeDefined();
+      if (!papel) return;
+
+      const prof1 = new Profissional("p-1", "Ana", "Pesquisadora", NivelExperiencia.SENIOR, ["Pesquisa"], 100);
+      const prof2 = new Profissional("p-2", "Beatriz", "Pesquisadora Senior", NivelExperiencia.ESPECIALISTA, ["Pesquisa"], 150);
+
+      projeto.aceitarRecomendacao(papel, prof1);
+      expect(projeto.equipe.get(papel)).toContain(prof1);
+
+      projeto.substituirMembro(papel, prof2);
+      expect(projeto.equipe.get(papel)?.[0]).toBe(prof2);
+
+      projeto.solicitarReavaliacao();
+      expect(projeto.equipe.size).toBe(0);
+    });
   });
 
-  describe("ProjetoAnimacao - Clonagem Profunda", () => {
-    it("deve clonar profundamente ProjetoAnimacao garantindo independência de pipeline e métricas", () => {
+  describe("ProjetoAnimacao - Clonagem Profunda & Factory Method", () => {
+    it("deve clonar profundamente ProjetoAnimacao garantindo independência de pipeline, modelagem 3D e métricas", () => {
       const original = registro.obter("ANIMACAO") as ProjetoAnimacao;
       const qtdPapeisOriginal = original.papeis.length;
 
       const clone = original.clonar();
       expect(clone).not.toBe(original);
       expect(clone.pipelineSoftware).not.toBe(original.pipelineSoftware);
+      expect(clone.softwareModelagem3D).not.toBe(original.softwareModelagem3D);
 
-      // Modifica pipeline no clone
+      // Modifica pipeline e softwares de modelagem no clone
       clone.pipelineSoftware.push("Unreal Engine 5");
+      clone.softwareModelagem3D.push("Cinema 4D");
 
       // Modifica papéis e métricas
       clone.adicionarPapel(
@@ -105,21 +150,33 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
       expect(original.pipelineSoftware).not.toContain("Unreal Engine 5");
       expect(clone.pipelineSoftware).toContain("Unreal Engine 5");
 
+      expect(original.softwareModelagem3D).not.toContain("Cinema 4D");
+      expect(clone.softwareModelagem3D).toContain("Cinema 4D");
+
       expect(original.obterMetrica("eficienciaRender")).toBe(85.5);
       expect(clone.obterMetrica("eficienciaRender")).toBe(99.9);
     });
+
+    it("deve instanciar a FabricaAnimacao via Factory Method criarFabrica()", () => {
+      const original = registro.obter("ANIMACAO") as ProjetoAnimacao;
+      const fabrica = original.criarFabrica();
+      expect(fabrica).toBeInstanceOf(FabricaAnimacao);
+    });
   });
 
-  describe("ProjetoPublicitario - Clonagem Profunda", () => {
-    it("deve clonar profundamente ProjetoPublicitario garantindo integridade de prazos e restrições de marca", () => {
+  describe("ProjetoPublicitario - Clonagem Profunda & Factory Method", () => {
+    it("deve clonar profundamente ProjetoPublicitario garantindo integridade de canais, prazos e marca", () => {
       const original = registro.obter("PUBLICITARIO") as ProjetoPublicitario;
       const qtdRestricoesOriginal = original.restricoes.length;
 
       const clone = original.clonar();
       expect(clone).not.toBe(original);
+      expect(clone.canaisVeiculacao).not.toBe(original.canaisVeiculacao);
 
-      // Altera SLA e adiciona restrição de mídia
+      // Altera SLA, adiciona canal e restrição de mídia
       clone.prazoDiasSLA = 3;
+      clone.canaisVeiculacao.push("Twitch Streaming");
+
       clone.adicionarRestricao(
         new RestricaoProjeto(
           "res-pub-midia",
@@ -134,6 +191,14 @@ describe("Teste 1: Padrão Prototype & Garantia de Cópia Profunda (Deep Copy)",
       expect(clone.prazoDiasSLA).toBe(3);
       expect(original.restricoes.length).toBe(qtdRestricoesOriginal);
       expect(clone.restricoes.length).toBe(qtdRestricoesOriginal + 1);
+      expect(original.canaisVeiculacao).not.toContain("Twitch Streaming");
+      expect(clone.canaisVeiculacao).toContain("Twitch Streaming");
+    });
+
+    it("deve instanciar a FabricaPublicitario via Factory Method criarFabrica()", () => {
+      const original = registro.obter("PUBLICITARIO") as ProjetoPublicitario;
+      const fabrica = original.criarFabrica();
+      expect(fabrica).toBeInstanceOf(FabricaPublicitario);
     });
   });
 

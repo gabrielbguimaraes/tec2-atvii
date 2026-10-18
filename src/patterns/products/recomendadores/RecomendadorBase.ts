@@ -1,17 +1,20 @@
 import { RecomendadorProfissionais } from "./RecomendadorProfissionais";
 import { Projeto } from "../../prototype/Projeto";
 import { Profissional } from "../../../models/Profissional";
+import { Papel } from "../../../models/PapelProjeto";
 import { EstrategiaPontuacao } from "../../atvi_patterns/strategy/EstrategiaPontuacao";
+import { RecomendacaoStrategy } from "../../atvi_patterns/strategy/RecomendacaoStrategy";
 
-export abstract class RecomendadorBase implements RecomendadorProfissionais {
+export abstract class RecomendadorBase implements RecomendacaoStrategy, RecomendadorProfissionais {
   constructor(protected readonly estrategia: EstrategiaPontuacao) {}
 
-  public recomendar(projeto: Projeto, candidatos: Profissional[]): Profissional[] {
-    const equipeSelecionada: Profissional[] = [];
+  public recomendar(projeto: Projeto, candidatos: Profissional[]): Map<Papel, Profissional[]> {
+    const mapa = new Map<Papel, Profissional[]>();
     const idsAlocados = new Set<string>();
 
     for (const papel of projeto.papeis) {
       let vagasPreenchidas = 0;
+      const selecionadosParaPapel: Profissional[] = [];
 
       // Filtra candidatos disponíveis e ainda não alocados no projeto
       const candidatosElegiveis = candidatos
@@ -25,12 +28,14 @@ export abstract class RecomendadorBase implements RecomendadorProfissionais {
 
       for (const item of candidatosElegiveis) {
         if (vagasPreenchidas >= papel.quantidade) break;
-        equipeSelecionada.push(item.candidato);
+        selecionadosParaPapel.push(item.candidato);
         idsAlocados.add(item.candidato.id);
         vagasPreenchidas++;
       }
+
+      mapa.set(papel, selecionadosParaPapel);
     }
 
-    return equipeSelecionada;
+    return mapa;
   }
 }

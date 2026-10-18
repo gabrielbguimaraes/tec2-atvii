@@ -1,10 +1,14 @@
 import { EstrategiaDocumentario, EstrategiaAnimacao, EstrategiaPublicitario } from "../src/patterns/atvi_patterns/strategy/EstrategiasConcretas";
 import { SujeitoEventos, HistoricoAuditoriaObservador } from "../src/patterns/atvi_patterns/observer/ObservadorEvento";
+import { EventoRecomendacao } from "../src/patterns/atvi_patterns/observer/EventoRecomendacao";
 import { VisitanteCalculoCustos } from "../src/patterns/atvi_patterns/visitor/VisitanteCalculoCustos";
 import { RegistroPrototiposProjeto } from "../src/patterns/prototype/RegistroPrototiposProjeto";
 import { Profissional } from "../src/models/Profissional";
 import { PapelProjeto } from "../src/models/PapelProjeto";
 import { NivelExperiencia } from "../src/models/Tipos";
+import { ValidadorDocumentario } from "../src/patterns/products/validadores/ValidadorDocumentario";
+import { RecomendadorDocumentario } from "../src/patterns/products/recomendadores/RecomendadorDocumentario";
+import { NotificadorDocumentario } from "../src/patterns/products/notificadores/NotificadorDocumentario";
 
 describe("Integração dos Padrões Comportamentais da ATVI (Strategy, Observer, Visitor)", () => {
   let registro: RegistroPrototiposProjeto;
@@ -63,6 +67,15 @@ describe("Integração dos Padrões Comportamentais da ATVI (Strategy, Observer,
 
       expect(pontuacaoAnim).toBeGreaterThan(pontuacaoPub);
     });
+
+    it("deve implementar RecomendacaoStrategy retornando Map<Papel, Profissional[]>", () => {
+      const projeto = registro.obter("DOCUMENTARIO");
+      const recomendador = new RecomendadorDocumentario();
+      const prof = new Profissional("p-1", "Ana", "Pesquisadora", NivelExperiencia.SENIOR, ["Pesquisa Histórica"], 100);
+
+      const resultado = recomendador.recomendar(projeto, [prof]);
+      expect(resultado).toBeInstanceOf(Map);
+    });
   });
 
   describe("Observer Pattern", () => {
@@ -86,6 +99,15 @@ describe("Integração dos Padrões Comportamentais da ATVI (Strategy, Observer,
       sujeito.notificarObservadores("OUTRO_EVENTO", {});
       expect(observador.logs.length).toBe(1);
     });
+
+    it("deve notificar observadores implementando a interface Observador com EventoRecomendacao", () => {
+      const notificador = new NotificadorDocumentario();
+      const projeto = registro.obter("DOCUMENTARIO");
+      const evento = new EventoRecomendacao("RECOMENDACAO_CONCLUIDA", projeto, new Map(), "Equipe aprovada");
+
+      notificador.atualizar(evento);
+      expect(notificador.ultimoRelatorio).toContain("DIÁRIO DE CAMPO & PRODUÇÃO DOCUMENTAL");
+    });
   });
 
   describe("Visitor Pattern", () => {
@@ -100,6 +122,20 @@ describe("Integração dos Padrões Comportamentais da ATVI (Strategy, Observer,
       expect(visitante.relatorio.restricoesCriticas).toBe(2);
       expect(visitante.relatorio.orcamentoTotal).toBe(85000);
       expect(visitante.relatorio.custoMedioPorPapel).toBeGreaterThan(0);
+    });
+
+    it("deve visitarProjeto e visitarProfissional com ValidadorDocumentario (VisitanteProjeto)", () => {
+      const projeto = registro.obter("DOCUMENTARIO");
+      const validador = new ValidadorDocumentario();
+
+      const projetoValido = validador.visitarProjeto(projeto);
+      expect(projetoValido).toBe(true);
+
+      const profApto = new Profissional("p-1", "Ana", "Pesquisadora", NivelExperiencia.SENIOR, ["Pesquisa Histórica"], 100);
+      expect(validador.visitarProfissional(profApto)).toBe(true);
+
+      const profIndisponivel = new Profissional("p-2", "Beto", "Auxiliar", NivelExperiencia.JUNIOR, [], 50, false);
+      expect(validador.visitarProfissional(profIndisponivel)).toBe(false);
     });
   });
 });

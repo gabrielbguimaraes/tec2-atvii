@@ -1,12 +1,13 @@
 import { Projeto } from "../src/patterns/prototype/Projeto";
 import { FabricaProjeto } from "../src/patterns/factory/FabricaProjeto";
-import { ValidadorProjeto } from "../src/patterns/products/validadores/ValidadorProjeto";
-import { RecomendadorProfissionais } from "../src/patterns/products/recomendadores/RecomendadorProfissionais";
-import { NotificadorEquipe } from "../src/patterns/products/notificadores/NotificadorEquipe";
-import { OrquestradorEquipe } from "../src/services/OrquestradorEquipe";
+import { VisitanteProjeto } from "../src/patterns/atvi_patterns/visitor/VisitanteProjeto";
+import { RecomendacaoStrategy } from "../src/patterns/atvi_patterns/strategy/RecomendacaoStrategy";
+import { Observador } from "../src/patterns/atvi_patterns/observer/Observador";
+import { EventoRecomendacao } from "../src/patterns/atvi_patterns/observer/EventoRecomendacao";
+import { OrquestradorPadrao } from "../src/services/OrquestradorEquipe";
 import { SistemaRecomendacao } from "../src/services/SistemaRecomendacao";
 import { Profissional } from "../src/models/Profissional";
-import { PapelProjeto } from "../src/models/PapelProjeto";
+import { Papel, PapelProjeto } from "../src/models/PapelProjeto";
 import { RestricaoProjeto } from "../src/models/RestricaoProjeto";
 import { ResultadoValidacao } from "../src/models/ResultadoValidacao";
 import { NivelExperiencia, SeveridadeRestricao } from "../src/models/Tipos";
@@ -30,13 +31,17 @@ class ProjetoRealidadeVirtual extends Projeto {
     public taxaAtualizacaoMinimaHz: number = 90,
     public latenciaMaximaMs: number = 20
   ) {
-    super(id, titulo, orcamento, papeis, restricoes, metricasEspecificas);
+    super(id, titulo, orcamento, papeis, restricoes, metricasEspecificas, "REALIDADE_VIRTUAL");
     this.definirMetrica("taxaAtualizacaoHz", taxaAtualizacaoMinimaHz);
     this.definirMetrica("latenciaMs", latenciaMaximaMs);
   }
 
   public obterTipo(): string {
     return "REALIDADE_VIRTUAL";
+  }
+
+  public criarFabrica(): FabricaProjeto {
+    return new FabricaRealidadeVirtual();
   }
 
   public clonar(): ProjetoRealidadeVirtual {
@@ -54,7 +59,19 @@ class ProjetoRealidadeVirtual extends Projeto {
   }
 }
 
-class ValidadorRealidadeVirtual implements ValidadorProjeto {
+class ValidadorRealidadeVirtual implements VisitanteProjeto {
+  public visitarProjeto(projeto: Projeto): boolean {
+    const latencia = Number(projeto.obterMetrica("latenciaMs") ?? 20);
+    return latencia <= 20 && projeto.orcamento > 0;
+  }
+
+  public visitarProfissional(profissional: Profissional): boolean {
+    return (
+      profissional.disponivel &&
+      (profissional.temHabilidade("Unity VR") || profissional.temHabilidade("Unreal XR") || profissional.temTag("vr"))
+    );
+  }
+
   public validar(projeto: Projeto, equipe: Profissional[]): ResultadoValidacao {
     const mensagens: string[] = ["[ValidadorVR] Validando latência motora e conforto visual (motion sickness)..."];
     const erros: string[] = [];
@@ -82,17 +99,41 @@ class ValidadorRealidadeVirtual implements ValidadorProjeto {
   }
 }
 
-class RecomendadorRealidadeVirtual implements RecomendadorProfissionais {
-  public recomendar(_projeto: Projeto, candidatos: Profissional[]): Profissional[] {
-    // Prioriza profissionais com tags ou habilidades em VR / XR
-    return candidatos
+class RecomendadorRealidadeVirtual implements RecomendacaoStrategy {
+  public recomendar(projeto: Projeto, candidatos: Profissional[]): Map<Papel, Profissional[]> {
+    const mapa = new Map<Papel, Profissional[]>();
+    const selecionados = candidatos
       .filter(c => c.disponivel)
       .filter(c => c.temHabilidade("Unity VR") || c.temHabilidade("Unreal XR") || c.temTag("vr") || c.temHabilidade("Modelagem 3D"))
       .slice(0, 3);
+
+    const primeiroPapel = projeto.papeis[0];
+    if (primeiroPapel) {
+      mapa.set(primeiroPapel, selecionados);
+    }
+    return mapa;
   }
 }
 
-class NotificadorRealidadeVirtual implements NotificadorEquipe {
+class NotificadorRealidadeVirtual implements Observador {
+  public ultimoRelatorio: string = "";
+
+  public atualizar(evento: EventoRecomendacao): void {
+    const todosProfs: Profissional[] = [];
+    if (evento.equipe instanceof Map) {
+      for (const lista of evento.equipe.values()) {
+        if (Array.isArray(lista)) {
+          todosProfs.push(...lista);
+        } else {
+          todosProfs.push(lista);
+        }
+      }
+    } else if (Array.isArray(evento.equipe)) {
+      todosProfs.push(...evento.equipe);
+    }
+    this.ultimoRelatorio = this.notificar(evento.projeto, todosProfs, evento.mensagem);
+  }
+
   public notificar(projeto: Projeto, equipe: Profissional[], mensagem: string): string {
     return [
       "🥽 [DISPATCHER REALIDADE VIRTUAL & XR METAVERSO]",
@@ -105,7 +146,10 @@ class NotificadorRealidadeVirtual implements NotificadorEquipe {
 }
 
 class FabricaRealidadeVirtual implements FabricaProjeto {
-  public criarProjeto(titulo?: string, orcamento?: number): Projeto {
+  public criarProjeto(dados?: any, orcamento?: number): Projeto {
+    const titulo = typeof dados === "string" ? dados : dados?.titulo ?? "Experiência de Realidade Virtual Imersiva";
+    const valorOrcamento = typeof dados === "object" && dados?.orcamento !== undefined ? dados.orcamento : orcamento;
+
     const papeisVR = [
       new PapelProjeto(
         "papel-vr-dev",
@@ -128,23 +172,23 @@ class FabricaRealidadeVirtual implements FabricaProjeto {
 
     return new ProjetoRealidadeVirtual(
       `vr_${Date.now()}`,
-      titulo ?? "Experiência de Realidade Virtual Imersiva",
-      orcamento ?? 210000,
+      titulo,
+      valorOrcamento ?? 210000,
       papeisVR,
       restricoesVR,
       { latenciaMs: 16, taxaAtualizacaoHz: 90 }
     );
   }
 
-  public criarValidador(): ValidadorProjeto {
+  public criarValidador(): VisitanteProjeto {
     return new ValidadorRealidadeVirtual();
   }
 
-  public criarRecomendador(): RecomendadorProfissionais {
+  public criarRecomendador(): RecomendacaoStrategy {
     return new RecomendadorRealidadeVirtual();
   }
 
-  public criarNotificador(): NotificadorEquipe {
+  public criarNotificador(): Observador {
     return new NotificadorRealidadeVirtual();
   }
 }
@@ -181,11 +225,11 @@ describe("Teste 3: Extensibilidade & Princípio Aberto/Fechado (OCP)", () => {
     ];
   });
 
-  it("deve orquestrar uma nova família de Realidade Virtual sem modificar o código do OrquestradorEquipe", () => {
+  it("deve orquestrar uma nova família de Realidade Virtual sem modificar o código do OrquestradorEquipe / OrquestradorPadrao", () => {
     const fabricaVR = new FabricaRealidadeVirtual();
 
-    // Injeta a nova fábrica diretamente no OrquestradorEquipe existente
-    const orquestrador = new OrquestradorEquipe(fabricaVR);
+    // Injeta a nova fábrica diretamente no OrquestradorPadrao existente
+    const orquestrador = new OrquestradorPadrao(fabricaVR);
 
     const resultado = orquestrador.orquestrar(
       "Simulador Cirúrgico Imersivo VR",
@@ -220,5 +264,18 @@ describe("Teste 3: Extensibilidade & Princípio Aberto/Fechado (OCP)", () => {
     expect(resultado.projeto.obterTipo()).toBe("REALIDADE_VIRTUAL");
     expect(resultado.validacao.valido).toBe(true);
     expect(resultado.equipe[0]?.nome).toBe("Lucas Neo");
+  });
+
+  it("deve permitir obter a fábrica a partir do próprio ProjetoRealidadeVirtual via Factory Method", () => {
+    const fabricaVR = new FabricaRealidadeVirtual();
+    const projetoVR = fabricaVR.criarProjeto("Tour Virtual", 200000);
+    const fabricaObtida = projetoVR.criarFabrica();
+
+    expect(fabricaObtida).toBeInstanceOf(FabricaRealidadeVirtual);
+
+    const sistema = new SistemaRecomendacao();
+    const resultado = sistema.processarSolicitacao(projetoVR, undefined, undefined, candidatosVR);
+    expect(resultado.projeto).toBe(projetoVR);
+    expect(resultado.equipe.length).toBeGreaterThan(0);
   });
 });
